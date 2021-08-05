@@ -1,14 +1,14 @@
 #include "VL53L0XSensor.h"
 
 VL53L0XSensor::VL53L0XSensor(int xShutPin, uint32_t measurementInterval) : m_distanceSensor(), m_lastDistance(-1), 
-                            m_lastMeasurement(0), m_measurementInterval(measurementInterval), m_i2cAddress(0x29),
+                            m_lastMeasurement(0), m_measurementInterval(measurementInterval),
                             m_xShutPin(xShutPin) 
 {
     pinMode(m_xShutPin, OUTPUT);
-    digitalWrite(m_xShutPin, HIGH);
+    digitalWrite(m_xShutPin, LOW);
 } 
 
-void VL53L0XSensor::setI2CAddress(int8_t i2cAddress)
+void VL53L0XSensor::setI2CAddress(uint8_t i2cAddress)
 {
     if(i2cAddress < 0x29 || i2cAddress > 0x7f)
     {
@@ -16,20 +16,23 @@ void VL53L0XSensor::setI2CAddress(int8_t i2cAddress)
     }
     else
     {
-        m_i2cAddress = i2cAddress;
+        m_distanceSensor.setAddress(i2cAddress);
     }
 }
 
 bool  VL53L0XSensor::bootSensor()
 {
-    return m_distanceSensor.begin(m_i2cAddress);
+    m_distanceSensor.setTimeout(500);
+    m_distanceSensor.setMeasurementTimingBudget(60000);
+
+    return m_distanceSensor.init();
 }
 
 bool VL53L0XSensor::newDataAvailable()
 {
     int newDistance = this->getSensorDistance();
 
-    if(newDistance != m_lastDistance)
+    if(newDistance != 0 && newDistance != -1)
     {
         m_lastDistance = newDistance;
         return true;
@@ -44,16 +47,17 @@ int VL53L0XSensor::getSensorDistance()
 {
     if(millis() - m_lastMeasurement > m_measurementInterval)
     {
-        VL53L0X_RangingMeasurementData_t measure;
-        m_distanceSensor.rangingTest(&measure, false); // pass in 'true' to get debug data printout!
-
-        if (measure.RangeStatus != 4) {  // phase failures have incorrect data
-            return measure.RangeMilliMeter;
-        } else {
-            return -1;
-        }
+        int measure = m_distanceSensor.readRangeSingleMillimeters();
         m_lastMeasurement = millis();
+
+        if (m_distanceSensor.timeoutOccurred()) {  // phase failures have incorrect data
+            return -1;
+        } else {
+            return measure;
+        }
     }
+
+    return 0;
 }
 
 int VL53L0XSensor::getLastMeasuredDistance() const

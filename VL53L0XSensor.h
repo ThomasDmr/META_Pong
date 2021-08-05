@@ -5,7 +5,8 @@
 
 #pragma once
 
-#include "Adafruit_VL53L0X.h" // inclusion de la librairie du capteur
+#include <Wire.h>
+#include "VL53L0X.h" // inclusion de la librairie du capteur
 #include "Arduino.h"
 
 class VL53L0XSensor
@@ -21,7 +22,7 @@ public:
      * setI2CAddress : set the desired I2C address
      * @warning has to be called before the bootSensor() method
      */
-    void setI2CAddress(int8_t i2cAddress);
+    void setI2CAddress(uint8_t i2cAddress);
 
     /**
      * bootSensor : initialises the communication with the VL35L0X
@@ -54,11 +55,10 @@ public:
     int  getLastMeasuredDistance() const;
 
 private:
-    Adafruit_VL53L0X    m_distanceSensor;
+    VL53L0X             m_distanceSensor;
     int                 getSensorDistance();
     int                 m_lastDistance;
     uint32_t            m_lastMeasurement;
     uint32_t            m_measurementInterval;
-    int8_t              m_i2cAddress;
     int                 m_xShutPin;
 };
