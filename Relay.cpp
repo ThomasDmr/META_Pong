@@ -1,6 +1,6 @@
 #include "Relay.h"
 
-Relay::Relay(int pin, String name = "None") : m_pin(pin), m_name(name), m_state(0){}
+Relay::Relay(int pin, String name) : m_pin(pin), m_name(name), m_state(0){}
 
 void Relay::init()
 {

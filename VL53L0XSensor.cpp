@@ -25,7 +25,15 @@ bool  VL53L0XSensor::bootSensor()
     m_distanceSensor.setTimeout(500);
     m_distanceSensor.setMeasurementTimingBudget(60000);
 
-    return m_distanceSensor.init();
+    if(!m_distanceSensor.init())
+    {
+        return false;
+    }
+    else
+    {
+        m_distanceSensor.startContinuous();
+        return true;
+    }
 }
 
 bool VL53L0XSensor::newDataAvailable()
@@ -47,7 +55,7 @@ int VL53L0XSensor::getSensorDistance()
 {
     if(millis() - m_lastMeasurement > m_measurementInterval)
     {
-        int measure = m_distanceSensor.readRangeSingleMillimeters();
+        int measure = m_distanceSensor.readRangeContinuousMillimeters();
         m_lastMeasurement = millis();
 
         if (m_distanceSensor.timeoutOccurred()) {  // phase failures have incorrect data
