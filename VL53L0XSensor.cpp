@@ -1,6 +1,6 @@
 #include "VL53L0XSensor.h"
 
-VL53L0XSensor::VL53L0XSensor(int xShutPin, uint32_t measurementInterval) : m_distanceSensor(), m_lastDistance(-1), 
+VL53L0XSensor::VL53L0XSensor(uint8_t xShutPin, uint16_t measurementInterval) : m_distanceSensor(), m_lastDistance(-1), 
                             m_lastMeasurement(0), m_measurementInterval(measurementInterval),
                             m_xShutPin(xShutPin) 
 {

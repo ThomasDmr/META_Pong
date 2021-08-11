@@ -16,7 +16,7 @@ public:
     /**
      * VL53L0XDetector : default constructor initializing the attributes
      */
-    VL53L0XSensor(int xShutPin, uint32_t measurementInterval = 100);
+    VL53L0XSensor(uint8_t xShutPin, uint16_t measurementInterval = 100);
 
     /**
      * setI2CAddress : set the desired I2C address
@@ -59,6 +59,6 @@ private:
     int                 getSensorDistance();
     int                 m_lastDistance;
     uint32_t            m_lastMeasurement;
-    uint32_t            m_measurementInterval;
-    int                 m_xShutPin;
+    uint16_t            m_measurementInterval;
+    uint8_t             m_xShutPin;
 };
