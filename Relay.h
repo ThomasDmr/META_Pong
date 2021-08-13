@@ -4,7 +4,7 @@
 class Relay
 {
     public:
-    Relay(int pin, String name = "None");
+    Relay(int pin, String name = "None", bool activeHigh = true);
 
     void init();
 
@@ -18,5 +18,6 @@ class Relay
     int m_pin;
     bool m_state;
     String m_name;
+    bool m_activeHigh;
 
 };

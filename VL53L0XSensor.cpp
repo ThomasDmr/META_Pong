@@ -2,7 +2,7 @@
 
 VL53L0XSensor::VL53L0XSensor(uint8_t xShutPin, uint16_t measurementInterval) : m_distanceSensor(), m_lastDistance(-1), 
                             m_lastMeasurement(0), m_measurementInterval(measurementInterval),
-                            m_xShutPin(xShutPin) 
+                            m_xShutPin(xShutPin), m_i2cAddress(0x29) 
 {
     pinMode(m_xShutPin, OUTPUT);
     digitalWrite(m_xShutPin, LOW);
@@ -17,6 +17,7 @@ void VL53L0XSensor::setI2CAddress(uint8_t i2cAddress)
     else
     {
         m_distanceSensor.setAddress(i2cAddress);
+        m_i2cAddress = i2cAddress;
     }
 }
 
@@ -34,6 +35,23 @@ bool  VL53L0XSensor::bootSensor()
         m_distanceSensor.startContinuous();
         return true;
     }
+}
+
+bool VL53L0XSensor::quickBoot(uint8_t i2cAddress)
+{
+    this->turnOnSensor();
+    delay(5);
+    this->setI2CAddress(i2cAddress);
+    delay(5);
+    if(this->bootSensor())
+        return true;
+    
+    return false;
+}
+
+bool VL53L0XSensor::quickBoot()
+{
+    return this->quickBoot(m_i2cAddress);
 }
 
 bool VL53L0XSensor::newDataAvailable()
@@ -75,6 +93,7 @@ int VL53L0XSensor::getLastMeasuredDistance() const
 
 void VL53L0XSensor::turnOffSensor()
 {
+    m_distanceSensor.setAddress(0X29);
     digitalWrite(m_xShutPin, LOW);
 }
 

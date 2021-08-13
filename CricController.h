@@ -10,12 +10,19 @@ class CricController
 
     void init(VL53L0XSensor& distanceSensor);
 
+    void stop();
+
     void setMinPosDistance(int minPosDistance);
     void setMaxPosDistance(int maxPosDistance);
 
-    void updatePosition();
+    void updatePosition(bool print = false);
 
     int8_t goToPosition(int desiredPosition);
+
+    bool relayMovementDetected();
+
+    void forceAirIn();
+    void forceAirOut();
 
     private:
     Relay           m_relayAirIn;
@@ -25,4 +32,6 @@ class CricController
     int             m_minPosDistance;
     int             m_maxPosDistance;
     int             m_currentPosition;
+    uint8_t         m_systemState;
+    bool            m_relayMovement;
 };

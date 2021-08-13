@@ -31,6 +31,9 @@ public:
      */
     bool bootSensor();
 
+    bool quickBoot(uint8_t i2cAddress);
+    bool quickBoot();
+
     /**
      * newDataAvailable : check if there is a new measurement available
 	 * @warning This method needs to be called within the main loop
@@ -61,4 +64,5 @@ private:
     uint32_t            m_lastMeasurement;
     uint16_t            m_measurementInterval;
     uint8_t             m_xShutPin;
+    uint8_t             m_i2cAddress;
 };

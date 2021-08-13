@@ -23,6 +23,7 @@ int desiredPosCric4 = 0;
 void setup() {
     Serial.begin(115200);
     Wire.begin();
+    Wire.setClock(400000);
 
     // Configure les adresses i2c des capteurs de distance et initialise les objets
     configureDistanceSensors();
@@ -37,7 +38,7 @@ void setup() {
     Cric1.setMaxPosDistance(MAX_DISTANCE_1);
     Cric1.setMinPosDistance(MIN_DISTANCE_1);
     Cric2.setMaxPosDistance(MAX_DISTANCE_2);
-    Cric2.setMinPosDistance(MIN_DISTANCE_2 );
+    Cric2.setMinPosDistance(MIN_DISTANCE_2);
     Cric3.setMaxPosDistance(MAX_DISTANCE_3);
     Cric3.setMinPosDistance(MIN_DISTANCE_3);
     Cric4.setMaxPosDistance(MAX_DISTANCE_4);
@@ -45,30 +46,117 @@ void setup() {
 }
 
 // !!! Le loop est asynchrone, ne pas mettre des fonction bloquantes !!!! 
-
+bool printPosition = false;
 void loop() 
 {
     // A laisser dans le loop pour actualiser la lecture des distances
-    Cric1.updatePosition();
-    Cric2.updatePosition();
-    Cric3.updatePosition();
-    Cric4.updatePosition();
+    Cric1.updatePosition(printPosition);
+    Cric2.updatePosition(printPosition);
+    Cric3.updatePosition(printPosition);
+    Cric4.updatePosition(printPosition);
 
     if(Serial.available())
     {
         char b = Serial.read();
 
-        if(b == '0')
+        if(b == '1')
         {
-            setTablePosition(MIN_DISTANCE_1 + 10, MIN_DISTANCE_2 + 10, MIN_DISTANCE_3 + 10, MIN_DISTANCE_4 + 10);
-        }
-        else if(b == '1')
-        {
-            setTablePosition((MIN_DISTANCE_1 + MAX_DISTANCE_1)/2, (MIN_DISTANCE_2 + MAX_DISTANCE_2)/2, (MIN_DISTANCE_3 + MAX_DISTANCE_3)/2, (MIN_DISTANCE_4 + MAX_DISTANCE_4)/2);
+            // Back to minimum
+            setTablePosition(MIN_DISTANCE_1 + 5, MIN_DISTANCE_2 + 5, MIN_DISTANCE_3 + 5, MIN_DISTANCE_4 + 5);
         }
         else if(b == '2')
         {
+            // Go to max 
+            setTablePosition((MIN_DISTANCE_1 + MAX_DISTANCE_1)/2, (MIN_DISTANCE_2 + MAX_DISTANCE_2)/2, (MIN_DISTANCE_3 + MAX_DISTANCE_3)/2, (MIN_DISTANCE_4 + MAX_DISTANCE_4)/2);
+        }
+        else if(b == '3')
+        {
+            // Go to median
             setTablePosition(MAX_DISTANCE_1, MAX_DISTANCE_2, MAX_DISTANCE_3, MAX_DISTANCE_4);
+        }
+        else if(b == '4')
+        {
+            // Angle 1
+            setTablePosition(MAX_DISTANCE_1, (MIN_DISTANCE_2 + MAX_DISTANCE_2)/2 - 30, (MIN_DISTANCE_3 + MAX_DISTANCE_3)/2 - 30, MAX_DISTANCE_4);
+        }
+        else if(b == '5')
+        {
+            // - Angle 1
+            setTablePosition((MIN_DISTANCE_1 + MAX_DISTANCE_1)/2 - 30, MAX_DISTANCE_2, MAX_DISTANCE_3, (MIN_DISTANCE_4 + MAX_DISTANCE_4)/2 - 30);
+        }
+        else if(b == '0')
+        {
+            setTablePosition(0, 0, 0, 0);
+            Cric1.stop();
+            Cric2.stop();
+            Cric3.stop();
+            Cric4.stop();
+        }
+        else if(b == 'm')
+        {
+            printPosition = true;
+        }
+        else if(b == 'l')
+        {
+            printPosition = false;
+        }
+        else if(b == 'a')
+        {
+            int i = Serial.parseInt();
+            if(i == 11)
+            {
+                Cric1.forceAirIn();
+            }
+            else if(i == 10)
+            {
+                Cric1.forceAirOut();
+            }
+            else if(i == 21)
+            {
+                Cric2.forceAirIn();
+            }
+            else if(i == 20)
+            {
+                Cric2.forceAirOut();
+            }
+            else if(i == 31)
+            {
+                Cric3.forceAirIn();
+            }
+            else if(i == 30)
+            {
+                Cric3.forceAirOut();
+            }
+            else if(i == 41)
+            {
+                Cric4.forceAirIn();
+            }
+            else if(i == 40)
+            {
+                Cric4.forceAirOut();
+            }
+            else
+            {
+                setTablePosition(0, 0, 0, 0);
+                Cric1.stop();
+                Cric2.stop();
+                Cric3.stop();
+                Cric4.stop();
+            }
+           
+        }
+        else if(b == 'b')
+        {
+            configureDistanceSensors();
+        }
+        else if(b == 'r')
+        {
+            sensor1.turnOffSensor();
+            delay(100);
+            if(sensor1.quickBoot())
+            {
+                Serial.println("Done");
+            }
         }
     }
 
@@ -76,6 +164,14 @@ void loop()
     {
         Serial.println(String(millis()) + "\tPosition reached !");
     }
+
+    bool relayMovement = Cric1.relayMovementDetected() | Cric2.relayMovementDetected() | Cric3.relayMovementDetected() | Cric4.relayMovementDetected();
+    
+    if(relayMovement)
+    {
+        configureDistanceSensors();
+    }
+
 }
 
 void setTablePosition(int posCric1, int posCric2, int posCric3, int posCric4)
@@ -102,7 +198,7 @@ bool moveTable()
 
     if(desiredPosCric2 != 0)
     {
-        if(Cric2.goToPosition(desiredPosCric1) == 1)
+        if(Cric2.goToPosition(desiredPosCric2) == 1)
         {
             // Cric 1 a atteint sa position
             desiredPosCric2 = 0;
@@ -141,45 +237,37 @@ bool moveTable()
 
 void configureDistanceSensors()
 {
-  Serial.println("Start sensor configuration: ");
-  Serial.print("Sensor4: ");
-  turnOffSensors();
-  sensor4.turnOnSensor();
-  delay(10);
-  sensor4.setI2CAddress(0x59);
-  delay(10);
-  if(sensor4.bootSensor())
-    Serial.println("DONE !");
+    int error = 0;
+    //Serial.println("Start sensor configuration: ");
+    //Serial.print("Sensor4: ");
+    turnOffSensors();
+    delay(5);
+    if(!sensor4.quickBoot(I2C_ADDRESS_4))
+        error += 4;
 
-  Serial.print("Sensor3: ");
-  sensor3.turnOnSensor();
-  delay(10);
-  sensor3.setI2CAddress(0x49);
-  delay(10);
-  if(sensor3.bootSensor())
-    Serial.println("DONE !");
+    //Serial.print("Sensor3: ");
+    if(!sensor3.quickBoot(I2C_ADDRESS_3))
+        error += 30;
 
-  Serial.print("Sensor2: ");
-  sensor2.turnOnSensor();
-  delay(10);
-  sensor2.setI2CAddress(0x39);
-  delay(10);
-  if(sensor2.bootSensor())
-    Serial.println("DONE !");
+    //Serial.print("Sensor2: ");
+    if(!sensor2.quickBoot(I2C_ADDRESS_2))
+        error += 200;
+        
 
-  Serial.print("Sensor1: ");
-  sensor1.turnOnSensor();
-  delay(10);
-  sensor1.setI2CAddress(0x29);
-  delay(10);
-  if(sensor1.bootSensor())
-    Serial.println("DONE !");
+    //Serial.print("Sensor1: ");
+    if(!sensor1.quickBoot(I2C_ADDRESS_1))
+        error += 1000;
+    
+    if(error != 0)
+    {
+        Serial.println(error);
+    }
 }
 
 void turnOffSensors()
 {
-  sensor1.turnOffSensor();
-  sensor2.turnOffSensor();
-  sensor3.turnOffSensor();
-  sensor4.turnOffSensor();
+    sensor1.turnOffSensor();
+    sensor2.turnOffSensor();
+    sensor3.turnOffSensor();
+    sensor4.turnOffSensor();
 }

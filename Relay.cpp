@@ -1,17 +1,33 @@
 #include "Relay.h"
 
-Relay::Relay(int pin, String name) : m_pin(pin), m_name(name), m_state(0){}
+Relay::Relay(int pin, String name, bool activeHigh) : m_pin(pin), m_name(name), m_state(0), m_activeHigh(activeHigh)
+{}
 
 void Relay::init()
 {
     pinMode(m_pin, OUTPUT);
-    digitalWrite(m_pin, LOW);
+    if(m_activeHigh)
+    {
+        digitalWrite(m_pin, LOW);
+    }
+    else
+    {
+        digitalWrite(m_pin, HIGH);
+    }
     m_state = false;
 }
 
 void Relay::open()
 {
-    digitalWrite(m_pin, HIGH);
+    if(m_activeHigh)
+    {
+        digitalWrite(m_pin, HIGH);
+    }
+    else
+    {
+        digitalWrite(m_pin, LOW);
+    }
+
     if(m_name != "None" && m_state != true)
     {
         Serial.println(String(millis()) + "\t0\tOpen: " + m_name);
@@ -21,7 +37,14 @@ void Relay::open()
 
 void Relay::close()
 {
-    digitalWrite(m_pin, LOW);
+    if(m_activeHigh)
+    {
+        digitalWrite(m_pin, LOW);
+    }
+    else
+    {
+        digitalWrite(m_pin, HIGH);
+    }
 
     if(m_name != "None" && m_state != false)
     {
