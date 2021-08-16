@@ -286,20 +286,20 @@ void commonPitchAndRoll(int percentage)
     else if(percentage >= 0)
     {
         double tmp = (double)percentage/100;
+        int pos1 = ((double)MIN_DISTANCE_1 + (double)MAX_DISTANCE_1)/2 + (tmp * (((double)MAX_DISTANCE_1 - (double)MIN_DISTANCE_1)/2 - (double)MIN_LOW_1)) / 2;
         int pos2 = ((double)MAX_DISTANCE_2 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_2 * (1 - tmp)) / 2;
+        int pos3 = ((double)MIN_DISTANCE_3 + (double)MAX_DISTANCE_3)/2 + (tmp * (((double)MAX_DISTANCE_3 - (double)MIN_DISTANCE_3)/2 - (double)MIN_LOW_3)) / 2;
         int pos4 = ((double)MIN_DISTANCE_4 + (double)MAX_DISTANCE_4)/2 - ((double)MIN_LOW_4 * tmp);
-        int pos3 = (pos2 + pos4) / 2;
-        int pos1 = (pos2 + pos4) / 2;
         Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
         setTablePosition(pos1, pos2, pos3, pos4);
     }
     else if(percentage <= 0)
     {
         double tmp = -(double)percentage / 100;
+        int pos1 = ((double)MIN_DISTANCE_1 + (double)MAX_DISTANCE_1)/2 + (tmp * (((double)MAX_DISTANCE_1 - (double)MIN_DISTANCE_1)/2 - (double)MIN_LOW_1)) / 2;
         int pos2 = ((double)MIN_DISTANCE_2 + (double)MAX_DISTANCE_2)/2 - ((double)MIN_LOW_2 * tmp);
+        int pos3 = ((double)MIN_DISTANCE_3 + (double)MAX_DISTANCE_3)/2 + (tmp * (((double)MAX_DISTANCE_3 - (double)MIN_DISTANCE_3)/2 - (double)MIN_LOW_3)) / 2;
         int pos4 = ((double)MAX_DISTANCE_4 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_4 * (1 - tmp)) / 2;
-        int pos3 = (pos2 + pos4) / 2;
-        int pos1 = (pos2 + pos4) / 2;
         Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
         setTablePosition(pos1, pos2, pos3, pos4);
     }
@@ -316,9 +316,9 @@ void oppositePitchAndRoll(int percentage)
     {
         double tmp = (double)percentage/100;
         int pos1 = ((double)MAX_DISTANCE_1 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_1 * (1 - tmp)) / 2;
+        int pos2 = ((double)MIN_DISTANCE_2 + (double)MAX_DISTANCE_2)/2 + (tmp * (((double)MAX_DISTANCE_2 - (double)MIN_DISTANCE_2)/2 - (double)MIN_LOW_2)) / 2;
         int pos3 = ((double)MIN_DISTANCE_3 + (double)MAX_DISTANCE_3)/2 - ((double)MIN_LOW_3 * tmp);
-        int pos2 = (pos1 + pos3)/2;
-        int pos4 = (pos1 + pos3)/2;
+        int pos4 = ((double)MIN_DISTANCE_4 + (double)MAX_DISTANCE_4)/2 + (tmp * (((double)MAX_DISTANCE_4 - (double)MIN_DISTANCE_4)/2 - (double)MIN_LOW_4)) / 2;
         Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
         setTablePosition(pos1, pos2, pos3, pos4);
     }
@@ -326,9 +326,9 @@ void oppositePitchAndRoll(int percentage)
     {
         double tmp = -(double)percentage / 100;
         int pos1 = ((double)MIN_DISTANCE_1 + (double)MAX_DISTANCE_1)/2 - ((double)MIN_LOW_1 * tmp);
+        int pos2 = ((double)MIN_DISTANCE_2 + (double)MAX_DISTANCE_2)/2 + (tmp * (((double)MAX_DISTANCE_2 - (double)MIN_DISTANCE_2)/2 - (double)MIN_LOW_2)) / 2;
         int pos3 = ((double)MAX_DISTANCE_3 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_3 * (1 - tmp)) / 2;
-        int pos2 = (pos1 + pos3)/2;
-        int pos4 = (pos1 + pos3)/2;
+        int pos4 = ((double)MIN_DISTANCE_4 + (double)MAX_DISTANCE_4)/2 + (tmp * (((double)MAX_DISTANCE_4 - (double)MIN_DISTANCE_4)/2 - (double)MIN_LOW_4)) / 2;
         Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
         setTablePosition(pos1, pos2, pos3, pos4);
     }
