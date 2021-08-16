@@ -55,6 +55,27 @@ void loop()
     Cric3.updatePosition(printPosition);
     Cric4.updatePosition(printPosition);
 
+    checkForSerialOrder();
+
+    if(moveTable(false))
+    {
+        Serial.println(String(millis()) + "\tPosition reached !");
+    }
+
+    bool relayMovement = Cric1.relayMovementDetected() | Cric2.relayMovementDetected() | Cric3.relayMovementDetected() | Cric4.relayMovementDetected();
+    
+    if(relayMovement)
+    {
+        configureDistanceSensors();
+    }
+}
+
+
+//====================================================================================
+//=================  HIGH LEVEL FUNCTIONS (you can play with them) ===================
+//====================================================================================
+void checkForSerialOrder()
+{
     if(Serial.available())
     {
         char b = Serial.read();
@@ -145,46 +166,203 @@ void loop()
             }
            
         }
+        else if(b == 'r')
+        {
+            int i = Serial.parseInt();
+            rollAngle(i);
+        }
+        else if(b == 'p')
+        {
+            int i = Serial.parseInt();
+            pitchAngle(i);
+        }
+        else if(b == 't')
+        {
+            int i = Serial.parseInt();
+            upDown(i);
+        }
+        else if(b == 'o')
+        {
+            int i = Serial.parseInt();
+            oppositePitchAndRoll(i);
+        }
+        else if(b == 'c')
+        {
+            int i = Serial.parseInt();
+            commonPitchAndRoll(i);
+        }
         else if(b == 'b')
         {
             configureDistanceSensors();
         }
-        else if(b == 'r')
-        {
-            sensor1.turnOffSensor();
-            delay(100);
-            if(sensor1.quickBoot())
-            {
-                Serial.println("Done");
-            }
-        }
     }
+}
 
-    if(moveTable())
+void rollAngle(int percentage)
+{   
+    Serial.println("Roll angle : " + String(percentage));
+    if(abs(percentage) > 100)
     {
-        Serial.println(String(millis()) + "\tPosition reached !");
+        Serial.println("Roll Angle out of bound");
     }
-
-    bool relayMovement = Cric1.relayMovementDetected() | Cric2.relayMovementDetected() | Cric3.relayMovementDetected() | Cric4.relayMovementDetected();
-    
-    if(relayMovement)
+    else if(percentage >= 0)
     {
-        configureDistanceSensors();
+        double tmp = (double)percentage / 100;
+        int pos1 = ((double)MAX_DISTANCE_1 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_1 * (1 - tmp)) / 2;
+        int pos2 = ((double)MIN_DISTANCE_2 + (double)MAX_DISTANCE_2)/2 - ((double)MIN_LOW_2 * tmp);
+        int pos3 = ((double)MIN_DISTANCE_3 + (double)MAX_DISTANCE_3)/2 - ((double)MIN_LOW_3 * tmp);
+        int pos4 = ((double)MAX_DISTANCE_4 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_4 * (1 - tmp)) / 2;
+        Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
+        setTablePosition(pos1, pos2, pos3, pos4);
+    }
+    else if(percentage <= 0)
+    {
+        double tmp = -(double)percentage / 100;
+        int pos1 = ((double)MIN_DISTANCE_1 + (double)MAX_DISTANCE_1)/2 - ((double)MIN_LOW_1 * tmp);
+        int pos2 = ((double)MAX_DISTANCE_2 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_2 * (1 - tmp)) / 2;
+        int pos3 = ((double)MAX_DISTANCE_3 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_3 * (1 - tmp)) / 2;
+        int pos4 = ((double)MIN_DISTANCE_4 + (double)MAX_DISTANCE_4)/2 - ((double)MIN_LOW_4 * tmp);
+        Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
+        setTablePosition(pos1, pos2, pos3, pos4);
+    }
+}
+
+void pitchAngle(int percentage)
+{
+    Serial.println("Pitch angle : " + String(percentage));
+    if(abs(percentage) > 100)
+    {
+        Serial.println("Pitch Angle out of bound");
+    }
+    else if(percentage >= 0)
+    {
+        double tmp = (double)percentage/100;
+        int pos1 = ((double)MIN_DISTANCE_1 + (double)MAX_DISTANCE_1)/2 - ((double)MIN_LOW_1 * tmp);
+        int pos2 = ((double)MIN_DISTANCE_2 + (double)MAX_DISTANCE_2)/2 - ((double)MIN_LOW_2 * tmp);
+        int pos3 = ((double)MAX_DISTANCE_3 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_3 * (1 - tmp)) / 2;
+        int pos4 = ((double)MAX_DISTANCE_4 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_4 * (1 - tmp)) / 2;
+        Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
+        setTablePosition(pos1, pos2, pos3, pos4);
+    }
+    else if(percentage <= 0)
+    {
+        double tmp = -(double)percentage / 100;
+        int pos1 = ((double)MAX_DISTANCE_1 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_1 * (1 - tmp)) / 2;
+        int pos2 = ((double)MAX_DISTANCE_2 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_2 * (1 - tmp)) / 2;
+        int pos3 = ((double)MIN_DISTANCE_3 + (double)MAX_DISTANCE_3)/2 - ((double)MIN_LOW_3 * tmp);
+        int pos4 = ((double)MIN_DISTANCE_4 + (double)MAX_DISTANCE_4)/2 - ((double)MIN_LOW_4 * tmp);
+        Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
+        setTablePosition(pos1, pos2, pos3, pos4);
+    }
+}
+
+void upDown(int percentage)
+{
+    Serial.println("Up/Down : " + String(percentage));
+    if(abs(percentage) > 100)
+    {
+        Serial.println("Up-Down percentage out of bound");
+    }
+    else
+    {
+        double tmp = (double)percentage / 100;
+        int pos1 = ((double)MAX_DISTANCE_1 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_1 * (1-tmp)) / 2;
+        int pos2 = ((double)MAX_DISTANCE_2 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_2 * (1-tmp)) / 2;
+        int pos3 = ((double)MAX_DISTANCE_3 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_3 * (1-tmp)) / 2;
+        int pos4 = ((double)MAX_DISTANCE_4 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_4 * (1-tmp)) / 2;
+        Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
+        setTablePosition(pos1, pos2, pos3, pos4);
     }
 
 }
 
+void commonPitchAndRoll(int percentage)
+{
+    Serial.println("Common P&R : " + String(percentage));
+    if(abs(percentage) > 100)
+    {
+        Serial.println("Common Pitch-and-Roll Angle out of bound");
+    }
+    else if(percentage >= 0)
+    {
+        double tmp = (double)percentage/100;
+        int pos2 = ((double)MAX_DISTANCE_2 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_2 * (1 - tmp)) / 2;
+        int pos4 = ((double)MIN_DISTANCE_4 + (double)MAX_DISTANCE_4)/2 - ((double)MIN_LOW_4 * tmp);
+        int pos3 = (pos2 + pos4) / 2;
+        int pos1 = (pos2 + pos4) / 2;
+        Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
+        setTablePosition(pos1, pos2, pos3, pos4);
+    }
+    else if(percentage <= 0)
+    {
+        double tmp = -(double)percentage / 100;
+        int pos2 = ((double)MIN_DISTANCE_2 + (double)MAX_DISTANCE_2)/2 - ((double)MIN_LOW_2 * tmp);
+        int pos4 = ((double)MAX_DISTANCE_4 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_4 * (1 - tmp)) / 2;
+        int pos3 = (pos2 + pos4) / 2;
+        int pos1 = (pos2 + pos4) / 2;
+        Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
+        setTablePosition(pos1, pos2, pos3, pos4);
+    }
+}
+
+void oppositePitchAndRoll(int percentage)
+{
+    Serial.println("Opposite P&R : " + String(percentage));
+    if(abs(percentage) > 100)
+    {
+        Serial.println("Opposite Pitch-and-Roll Angle out of bound");
+    }
+    else if(percentage >= 0)
+    {
+        double tmp = (double)percentage/100;
+        int pos1 = ((double)MAX_DISTANCE_1 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_1 * (1 - tmp)) / 2;
+        int pos3 = ((double)MIN_DISTANCE_3 + (double)MAX_DISTANCE_3)/2 - ((double)MIN_LOW_3 * tmp);
+        int pos2 = (pos1 + pos3)/2;
+        int pos4 = (pos1 + pos3)/2;
+        Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
+        setTablePosition(pos1, pos2, pos3, pos4);
+    }
+    else if(percentage <= 0)
+    {
+        double tmp = -(double)percentage / 100;
+        int pos1 = ((double)MIN_DISTANCE_1 + (double)MAX_DISTANCE_1)/2 - ((double)MIN_LOW_1 * tmp);
+        int pos3 = ((double)MAX_DISTANCE_3 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_3 * (1 - tmp)) / 2;
+        int pos2 = (pos1 + pos3)/2;
+        int pos4 = (pos1 + pos3)/2;
+        Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
+        setTablePosition(pos1, pos2, pos3, pos4);
+    }
+}
+//====================================================================================
+//==============================  LOW LEVEL FUNCTIONS ================================
+//====================================================================================
+
+/**
+ * setTablePosition : method to require a position for all 4 crics.
+ */
 void setTablePosition(int posCric1, int posCric2, int posCric3, int posCric4)
 {
     desiredPosCric1 = posCric1;
     desiredPosCric2 = posCric2;
     desiredPosCric3 = posCric3;
     desiredPosCric4 = posCric4;
+    moveTable(true);
 }
 
-bool moveTable()
+/**
+ * moveTable : calls the required movements for each cric after a setTablePosition is called
+ * @warning : needs to be called within an non blocking loop
+ * @return true when the position in reached
+ */
+bool moveTable(bool reset)
 {
     static int destinationReached = 0;
+
+    if(reset)
+    {
+        destinationReached = 0;
+        return false;
+    }
 
     if(desiredPosCric1 != 0)
     {
@@ -235,6 +413,14 @@ bool moveTable()
     return false;
 }
 
+/**
+ * configureDistanceSensors : initialises and defines the I2C adresses of each distance sensor
+ * @warning if no issue is encountered this functions doesn't show anything. If one of the sensors
+ * encountered an error it will print the number of the faulty sensor :
+ * "1234" --> all sensors faileds
+ * "1004" --> sensor 1 and 4 failed
+ * "30"   --> sensor 3 only failed  
+ */
 void configureDistanceSensors()
 {
     int error = 0;
@@ -264,6 +450,9 @@ void configureDistanceSensors()
     }
 }
 
+/**
+ * turnOffSensors : turns off all 4 sensors
+ */
 void turnOffSensors()
 {
     sensor1.turnOffSensor();

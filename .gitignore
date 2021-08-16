@@ -5,6 +5,7 @@
 #Build Directories
 [Dd]ebug/
 [Rr]elease/
+build/
 
 #Build Results
 *.o
@@ -24,6 +25,7 @@
 
 # Visual Micro folder
 __vm/
+
 
 *.xlsx
 #*.ino

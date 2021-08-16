@@ -31,6 +31,10 @@ public:
      */
     bool bootSensor();
 
+    /**
+     * quickboot : reboots the the communication with the VL35L0X in case of a line bug
+     * @return true if the sensor is correctly booted. 
+     */
     bool quickBoot(uint8_t i2cAddress);
     bool quickBoot();
 

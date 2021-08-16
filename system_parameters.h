@@ -1,15 +1,35 @@
 #pragma once
 
 // Définition des distances min et max mesurées par chaque capteur pour chaque cric (en mm)
-const int MIN_DISTANCE_1 = 115;
-const int MAX_DISTANCE_1 = 335;
-const int MIN_DISTANCE_2 = 135;
-const int MAX_DISTANCE_2 = 355;
-const int MIN_DISTANCE_3 = 135;
-const int MAX_DISTANCE_3 = 355;
-const int MIN_DISTANCE_4 = 110;
-const int MAX_DISTANCE_4 = 330;
 
+const int MIN_DISTANCE_1 = 109;
+const int MAX_DISTANCE_1 = 329;
+const int MIN_DISTANCE_2 = 121;
+const int MAX_DISTANCE_2 = 341;
+const int MIN_DISTANCE_3 = 128;
+const int MAX_DISTANCE_3 = 348;
+const int MIN_DISTANCE_4 = 108;
+const int MAX_DISTANCE_4 = 328;
+
+
+/*
+//Pour les tests
+const int MIN_DISTANCE_1 = 100;
+const int MAX_DISTANCE_1 = 400;
+const int MIN_DISTANCE_2 = 100;
+const int MAX_DISTANCE_2 = 400;
+const int MIN_DISTANCE_3 = 100;
+const int MAX_DISTANCE_3 = 400;
+const int MIN_DISTANCE_4 = 100;
+const int MAX_DISTANCE_4 = 400;
+*/
+
+// Définition de la longueur max (en mm) de descente par rapport à la position milieu (pour les mouvements pré-programmés)
+// Cette longueur doit être inférieure à (MAX - MIN) / 2
+const int MIN_LOW_1 = 40;
+const int MIN_LOW_2 = 40;
+const int MIN_LOW_3 = 40;
+const int MIN_LOW_4 = 40;
 
 // Définition des pins XSHUT des 4 capteurs de distance
 const uint8_t XSHUT_1 = A0;
