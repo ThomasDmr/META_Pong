@@ -1,5 +1,22 @@
 #pragma once
 
+// Définition des intervalles de temps min et max de maintien d'une position (en ms)
+const uint32_t MIN_MAINTAIN_TIME = 10000;
+const uint32_t MAX_MAINTAIN_TIME = 30000;
+
+// Définition des intervalles de temps min et max entre deux positions (en ms)
+const uint32_t MIN_POS_INTERVAL = 20000;
+const uint32_t MAX_POS_INTERVAL = 120000;
+
+// Définition des amplitudes min et max des mouvements (entre 0 et 100)
+// Si min = max alors tous les mouvements se feront à cette amplitude
+const int MIN_AMPLITUDE = 60;
+const int MAX_AMPLITUDE = 100; 
+
+// Booléen a passer à false si l'on souhaite enlever les mouvements de translation simple de la boucle automatique
+// (ce n'est pas forcément le mouvement le plus intéressant)
+const bool ALLOW_SIMPLE_TRANSLATION = true;
+
 // Définition des distances min et max mesurées par chaque capteur pour chaque cric (en mm)
 
 const int MIN_DISTANCE_1 = 109;

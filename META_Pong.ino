@@ -20,6 +20,10 @@ int desiredPosCric2 = 0;
 int desiredPosCric3 = 0;
 int desiredPosCric4 = 0;
 
+// Définition de booléens d'état permettant d'activer ou désactiver certaines options
+bool printPosition = false;
+bool continuousRandomMovement = true; // !!! Mettre à false si on ne veut pas un démarrage automatique
+
 void setup() {
     Serial.begin(115200);
     Wire.begin();
@@ -27,6 +31,9 @@ void setup() {
 
     // Configure les adresses i2c des capteurs de distance et initialise les objets
     configureDistanceSensors();
+
+    int seed = analogRead(A7); // A7 est flottant
+    randomSeed(seed);
 
     // Initialise les objets cric et associe un capteur de distance
     Cric1.init(sensor1);
@@ -46,7 +53,6 @@ void setup() {
 }
 
 // !!! Le loop est asynchrone, ne pas mettre des fonction bloquantes !!!! 
-bool printPosition = false;
 void loop() 
 {
     // A laisser dans le loop pour actualiser la lecture des distances
@@ -57,19 +63,137 @@ void loop()
 
     checkForSerialOrder();
 
-    if(moveTable(false))
+    if(continuousRandomMovement)
     {
-        Serial.println(String(millis()) + "\tPosition reached !");
+        runRandomMovements(false);
+    }
+    else 
+    {
+        if(moveTable(false))
+        {
+            Serial.println(String(millis()) + "\tPosition reached !");
+        }
     }
 
     bool relayMovement = Cric1.relayMovementDetected() | Cric2.relayMovementDetected() | Cric3.relayMovementDetected() | Cric4.relayMovementDetected();
     
     if(relayMovement)
     {
-        configureDistanceSensors();
+        if(configureDistanceSensors() != 0)
+        {
+            if(configureDistanceSensors() != 0)
+            {
+                // On laisse deux tentatives de reconfiguration
+                // Arrête les déplacements et ferme toutes les valves
+                setTablePosition(0, 0, 0, 0);
+                Cric1.stop();
+                Cric2.stop();
+                Cric3.stop();
+                Cric4.stop();
+                continuousRandomMovement = false;
+
+            }
+        }
     }
 }
 
+//====================================================================================
+//==========================  OVERAL MOVEMENT FUNCTIONS ==============================
+//====================================================================================
+
+void computeRandomMovement()
+{
+    int movementType;
+    if(ALLOW_SIMPLE_TRANSLATION)
+        movementType = random(1, 6); // random number between 1 and 5
+    else
+        movementType = random(1, 5); // random number between 1 and 4
+
+    int movementAmplitude = random(MIN_AMPLITUDE, MAX_AMPLITUDE + 1); // random number between 50 and 100
+    int movementOrientation = random(2); // 0 or 1
+
+    if(movementOrientation == 0)
+    {
+        movementAmplitude = -movementAmplitude;
+    }
+
+    switch(movementType)
+    {
+        case 1:
+            pitchAngle(movementAmplitude);
+            break;
+        case 2:
+            pitchAngle(movementAmplitude);
+            break;
+        case 3:
+            commonPitchAndRoll(movementAmplitude);
+            break;
+        case 4:
+            oppositePitchAndRoll(movementAmplitude);
+            break;
+        case 5:
+            upDown(movementAmplitude);
+            break;
+        default:
+            Serial.println("Mvt Error");
+            upDown(0);
+            break;
+    }
+}
+
+void runRandomMovements(bool reset)
+{
+    static uint32_t maintainTime = 2;
+    static uint32_t movementInterval = 0;
+    static uint32_t lastMovement = 0;
+
+    if(reset)
+    {
+        maintainTime = 2;
+        movementInterval = 0;
+        lastMovement = 0;
+        return;
+    }
+
+    if(maintainTime != 0)
+    {
+        if(maintainTime != 1 && millis() - lastMovement > maintainTime)
+        {
+            Serial.println(String(millis()) + "\tBack to neutral");
+            // on ramène le plateau à sa position "neutre"
+            upDown(0);
+            maintainTime = 1;
+        }
+
+        if(moveTable(false))
+        {
+            // Le plateau a atteint sa position neutre
+            maintainTime = 0;
+            lastMovement = millis();
+            movementInterval = random(MIN_POS_INTERVAL, MAX_POS_INTERVAL + 1);
+            Serial.println(String(millis()) + "\tPos_Int\t"  + String(movementInterval));
+        }
+    }
+
+    if(movementInterval != 0)
+    {
+        if(movementInterval != 1 && millis() - lastMovement > movementInterval)
+        {
+            // on demande un nouveau mouvement aléatoire
+            computeRandomMovement();
+            movementInterval = 1;
+        }
+
+        if(moveTable(false))
+        {
+            // Le plateau a atteint sa position neutre
+            movementInterval = 0;
+            lastMovement = millis();
+            maintainTime = random(MIN_MAINTAIN_TIME, MAX_MAINTAIN_TIME + 1);
+            Serial.println(String(millis()) + "\tMaintain\t"  + String(maintainTime));
+        }
+    }
+}
 
 //====================================================================================
 //=================  HIGH LEVEL FUNCTIONS (you can play with them) ===================
@@ -80,33 +204,16 @@ void checkForSerialOrder()
     {
         char b = Serial.read();
 
+        continuousRandomMovement = false;
+
         if(b == '1')
         {
             // Back to minimum
             setTablePosition(MIN_DISTANCE_1 + 5, MIN_DISTANCE_2 + 5, MIN_DISTANCE_3 + 5, MIN_DISTANCE_4 + 5);
         }
-        else if(b == '2')
-        {
-            // Go to max 
-            setTablePosition((MIN_DISTANCE_1 + MAX_DISTANCE_1)/2, (MIN_DISTANCE_2 + MAX_DISTANCE_2)/2, (MIN_DISTANCE_3 + MAX_DISTANCE_3)/2, (MIN_DISTANCE_4 + MAX_DISTANCE_4)/2);
-        }
-        else if(b == '3')
-        {
-            // Go to median
-            setTablePosition(MAX_DISTANCE_1, MAX_DISTANCE_2, MAX_DISTANCE_3, MAX_DISTANCE_4);
-        }
-        else if(b == '4')
-        {
-            // Angle 1
-            setTablePosition(MAX_DISTANCE_1, (MIN_DISTANCE_2 + MAX_DISTANCE_2)/2 - 30, (MIN_DISTANCE_3 + MAX_DISTANCE_3)/2 - 30, MAX_DISTANCE_4);
-        }
-        else if(b == '5')
-        {
-            // - Angle 1
-            setTablePosition((MIN_DISTANCE_1 + MAX_DISTANCE_1)/2 - 30, MAX_DISTANCE_2, MAX_DISTANCE_3, (MIN_DISTANCE_4 + MAX_DISTANCE_4)/2 - 30);
-        }
         else if(b == '0')
         {
+            // Arrête les déplacements et ferme toutes les valves
             setTablePosition(0, 0, 0, 0);
             Cric1.stop();
             Cric2.stop();
@@ -115,14 +222,56 @@ void checkForSerialOrder()
         }
         else if(b == 'm')
         {
-            printPosition = true;
+            // Active l'affichage des distances de chaque crics
+            printPosition = !printPosition;
         }
-        else if(b == 'l')
+        else if(b == 'r')
         {
-            printPosition = false;
+            // Permet d'envoyer une consigne de roll ('r-100' à 'r100')
+            int i = Serial.parseInt();
+            rollAngle(i);
+        }
+        else if(b == 'p')
+        {
+            // Permet d'envoyer une consigne de pitch ('p-100' à 'p100')
+            int i = Serial.parseInt();
+            pitchAngle(i);
+        }
+        else if(b == 't')
+        {
+            // Permet d'envoyer une consigne de translation ('t-100' à 't100')
+            int i = Serial.parseInt();
+            upDown(i);
+        }
+        else if(b == 'o')
+        {
+            // Permet d'envoyer une consigne de roll + pitch opposés ('o-100' à 'o100')
+            int i = Serial.parseInt();
+            oppositePitchAndRoll(i);
+        }
+        else if(b == 'c')
+        {
+            // Permet d'envoyer une consigne de roll + pitch commun ('c-100' à 'c100')
+            int i = Serial.parseInt();
+            commonPitchAndRoll(i);
+        }
+        else if(b == 'b')
+        {
+            // Permet de réinitialiser les capteurs de distance
+            configureDistanceSensors();
+        }
+        else if(b == 'g')
+        {
+            // Permet de réinitialiser les capteurs de distance
+            continuousRandomMovement = true;
+            runRandomMovements(true);
         }
         else if(b == 'a')
         {
+            // Permet de contrôler l'ouverture indépendante de chaque valve:
+            // 'aX1' permet de faire entrer l'air dans le cric X (ex : 'a21' fait entrer l'air dans le cric 2)
+            // 'aX0' permet de faire sortir l'air dans le cric X (ex : 'a40' fait sortir l'air du cric 4)
+            // Utiliser la commande '0' pour fermer les crics
             int i = Serial.parseInt();
             if(i == 11)
             {
@@ -164,36 +313,6 @@ void checkForSerialOrder()
                 Cric3.stop();
                 Cric4.stop();
             }
-           
-        }
-        else if(b == 'r')
-        {
-            int i = Serial.parseInt();
-            rollAngle(i);
-        }
-        else if(b == 'p')
-        {
-            int i = Serial.parseInt();
-            pitchAngle(i);
-        }
-        else if(b == 't')
-        {
-            int i = Serial.parseInt();
-            upDown(i);
-        }
-        else if(b == 'o')
-        {
-            int i = Serial.parseInt();
-            oppositePitchAndRoll(i);
-        }
-        else if(b == 'c')
-        {
-            int i = Serial.parseInt();
-            commonPitchAndRoll(i);
-        }
-        else if(b == 'b')
-        {
-            configureDistanceSensors();
         }
     }
 }
@@ -205,24 +324,22 @@ void rollAngle(int percentage)
     {
         Serial.println("Roll Angle out of bound");
     }
-    else if(percentage >= 0)
+    else if(percentage <= 0)
     {
-        double tmp = (double)percentage / 100;
+        double tmp = -(double)percentage / 100;
         int pos1 = ((double)MAX_DISTANCE_1 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_1 * (1 - tmp)) / 2;
         int pos2 = ((double)MIN_DISTANCE_2 + (double)MAX_DISTANCE_2)/2 - ((double)MIN_LOW_2 * tmp);
         int pos3 = ((double)MIN_DISTANCE_3 + (double)MAX_DISTANCE_3)/2 - ((double)MIN_LOW_3 * tmp);
         int pos4 = ((double)MAX_DISTANCE_4 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_4 * (1 - tmp)) / 2;
-        Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
         setTablePosition(pos1, pos2, pos3, pos4);
     }
-    else if(percentage <= 0)
+    else if(percentage >= 0)
     {
-        double tmp = -(double)percentage / 100;
+        double tmp = (double)percentage / 100;
         int pos1 = ((double)MIN_DISTANCE_1 + (double)MAX_DISTANCE_1)/2 - ((double)MIN_LOW_1 * tmp);
         int pos2 = ((double)MAX_DISTANCE_2 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_2 * (1 - tmp)) / 2;
         int pos3 = ((double)MAX_DISTANCE_3 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_3 * (1 - tmp)) / 2;
         int pos4 = ((double)MIN_DISTANCE_4 + (double)MAX_DISTANCE_4)/2 - ((double)MIN_LOW_4 * tmp);
-        Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
         setTablePosition(pos1, pos2, pos3, pos4);
     }
 }
@@ -241,7 +358,6 @@ void pitchAngle(int percentage)
         int pos2 = ((double)MIN_DISTANCE_2 + (double)MAX_DISTANCE_2)/2 - ((double)MIN_LOW_2 * tmp);
         int pos3 = ((double)MAX_DISTANCE_3 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_3 * (1 - tmp)) / 2;
         int pos4 = ((double)MAX_DISTANCE_4 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_4 * (1 - tmp)) / 2;
-        Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
         setTablePosition(pos1, pos2, pos3, pos4);
     }
     else if(percentage <= 0)
@@ -251,7 +367,6 @@ void pitchAngle(int percentage)
         int pos2 = ((double)MAX_DISTANCE_2 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_2 * (1 - tmp)) / 2;
         int pos3 = ((double)MIN_DISTANCE_3 + (double)MAX_DISTANCE_3)/2 - ((double)MIN_LOW_3 * tmp);
         int pos4 = ((double)MIN_DISTANCE_4 + (double)MAX_DISTANCE_4)/2 - ((double)MIN_LOW_4 * tmp);
-        Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
         setTablePosition(pos1, pos2, pos3, pos4);
     }
 }
@@ -270,13 +385,12 @@ void upDown(int percentage)
         int pos2 = ((double)MAX_DISTANCE_2 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_2 * (1-tmp)) / 2;
         int pos3 = ((double)MAX_DISTANCE_3 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_3 * (1-tmp)) / 2;
         int pos4 = ((double)MAX_DISTANCE_4 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_4 * (1-tmp)) / 2;
-        Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
         setTablePosition(pos1, pos2, pos3, pos4);
     }
 
 }
 
-void commonPitchAndRoll(int percentage)
+void oppositePitchAndRoll(int percentage)
 {
     Serial.println("Common P&R : " + String(percentage));
     if(abs(percentage) > 100)
@@ -290,7 +404,6 @@ void commonPitchAndRoll(int percentage)
         int pos2 = ((double)MAX_DISTANCE_2 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_2 * (1 - tmp)) / 2;
         int pos3 = ((double)MIN_DISTANCE_3 + (double)MAX_DISTANCE_3)/2 + (tmp * (((double)MAX_DISTANCE_3 - (double)MIN_DISTANCE_3)/2 - (double)MIN_LOW_3)) / 2;
         int pos4 = ((double)MIN_DISTANCE_4 + (double)MAX_DISTANCE_4)/2 - ((double)MIN_LOW_4 * tmp);
-        Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
         setTablePosition(pos1, pos2, pos3, pos4);
     }
     else if(percentage <= 0)
@@ -300,36 +413,33 @@ void commonPitchAndRoll(int percentage)
         int pos2 = ((double)MIN_DISTANCE_2 + (double)MAX_DISTANCE_2)/2 - ((double)MIN_LOW_2 * tmp);
         int pos3 = ((double)MIN_DISTANCE_3 + (double)MAX_DISTANCE_3)/2 + (tmp * (((double)MAX_DISTANCE_3 - (double)MIN_DISTANCE_3)/2 - (double)MIN_LOW_3)) / 2;
         int pos4 = ((double)MAX_DISTANCE_4 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_4 * (1 - tmp)) / 2;
-        Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
         setTablePosition(pos1, pos2, pos3, pos4);
     }
 }
 
-void oppositePitchAndRoll(int percentage)
+void commonPitchAndRoll(int percentage)
 {
     Serial.println("Opposite P&R : " + String(percentage));
     if(abs(percentage) > 100)
     {
         Serial.println("Opposite Pitch-and-Roll Angle out of bound");
     }
-    else if(percentage >= 0)
+    else if(percentage <= 0)
     {
-        double tmp = (double)percentage/100;
+        double tmp = -(double)percentage/100;
         int pos1 = ((double)MAX_DISTANCE_1 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_1 * (1 - tmp)) / 2;
         int pos2 = ((double)MIN_DISTANCE_2 + (double)MAX_DISTANCE_2)/2 + (tmp * (((double)MAX_DISTANCE_2 - (double)MIN_DISTANCE_2)/2 - (double)MIN_LOW_2)) / 2;
         int pos3 = ((double)MIN_DISTANCE_3 + (double)MAX_DISTANCE_3)/2 - ((double)MIN_LOW_3 * tmp);
         int pos4 = ((double)MIN_DISTANCE_4 + (double)MAX_DISTANCE_4)/2 + (tmp * (((double)MAX_DISTANCE_4 - (double)MIN_DISTANCE_4)/2 - (double)MIN_LOW_4)) / 2;
-        Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
         setTablePosition(pos1, pos2, pos3, pos4);
     }
-    else if(percentage <= 0)
+    else if(percentage > 0)
     {
-        double tmp = -(double)percentage / 100;
+        double tmp = (double)percentage / 100;
         int pos1 = ((double)MIN_DISTANCE_1 + (double)MAX_DISTANCE_1)/2 - ((double)MIN_LOW_1 * tmp);
         int pos2 = ((double)MIN_DISTANCE_2 + (double)MAX_DISTANCE_2)/2 + (tmp * (((double)MAX_DISTANCE_2 - (double)MIN_DISTANCE_2)/2 - (double)MIN_LOW_2)) / 2;
         int pos3 = ((double)MAX_DISTANCE_3 * (1 + tmp)) / 2 + ((double)MIN_DISTANCE_3 * (1 - tmp)) / 2;
         int pos4 = ((double)MIN_DISTANCE_4 + (double)MAX_DISTANCE_4)/2 + (tmp * (((double)MAX_DISTANCE_4 - (double)MIN_DISTANCE_4)/2 - (double)MIN_LOW_4)) / 2;
-        Serial.println("Pos1 : " + String(pos1) + "\tPos2 : " + String(pos2) + "\tPos3 : " + String(pos3) + "\tPos4 : " + String(pos4));
         setTablePosition(pos1, pos2, pos3, pos4);
     }
 }
@@ -421,26 +531,21 @@ bool moveTable(bool reset)
  * "1004" --> sensor 1 and 4 failed
  * "30"   --> sensor 3 only failed  
  */
-void configureDistanceSensors()
+int configureDistanceSensors()
 {
     int error = 0;
-    //Serial.println("Start sensor configuration: ");
-    //Serial.print("Sensor4: ");
     turnOffSensors();
     delay(5);
     if(!sensor4.quickBoot(I2C_ADDRESS_4))
         error += 4;
 
-    //Serial.print("Sensor3: ");
     if(!sensor3.quickBoot(I2C_ADDRESS_3))
         error += 30;
 
-    //Serial.print("Sensor2: ");
     if(!sensor2.quickBoot(I2C_ADDRESS_2))
         error += 200;
         
 
-    //Serial.print("Sensor1: ");
     if(!sensor1.quickBoot(I2C_ADDRESS_1))
         error += 1000;
     
@@ -448,6 +553,7 @@ void configureDistanceSensors()
     {
         Serial.println(error);
     }
+    return error;
 }
 
 /**
