@@ -46,14 +46,14 @@ class CricController
      * @warning : this needs to be called regularly and placed within a non-blocking loop
      * @param print if true, the method also prints the position on the Serial display
      */
-    void updatePosition(bool print = false);
+    bool updatePosition(bool print = false);
 
     /**
      * goToPosition : calls a movement of the cric. This will make sure the cric moves to the desired position
      * @warning : this needs to be called regularly and placed within a non-blocking loop
      * @param desiredPosition position the cric needs to move to (in mm)
      */
-    int8_t goToPosition(int desiredPosition);
+    int8_t goToPosition(int desiredPosition, int tolerance);
 
     /**
      * relayMovementDetected : returns true if a relay has changed its state during the last cycle
@@ -82,4 +82,5 @@ class CricController
     int             m_currentPosition;
     uint8_t         m_systemState;
     bool            m_relayMovement;
+    uint32_t        m_distanceTimer, m_positionTimer;
 };

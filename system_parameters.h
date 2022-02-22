@@ -1,16 +1,16 @@
 #pragma once
 
 // Définition des intervalles de temps min et max de maintien d'une position (en ms)
-const uint32_t MIN_MAINTAIN_TIME = 10000;
-const uint32_t MAX_MAINTAIN_TIME = 30000;
+const uint32_t MIN_MAINTAIN_TIME = 2000;
+const uint32_t MAX_MAINTAIN_TIME = 2000;
 
 // Définition des intervalles de temps min et max entre deux positions (en ms)
-const uint32_t MIN_POS_INTERVAL = 20000;
-const uint32_t MAX_POS_INTERVAL = 120000;
+const uint32_t MIN_POS_INTERVAL = 1000;
+const uint32_t MAX_POS_INTERVAL = 1000;
 
 // Définition des amplitudes min et max des mouvements (entre 0 et 100)
 // Si min = max alors tous les mouvements se feront à cette amplitude
-const int MIN_AMPLITUDE = 60;
+const int MIN_AMPLITUDE = 95;
 const int MAX_AMPLITUDE = 100; 
 
 // Booléen a passer à false si l'on souhaite enlever les mouvements de translation simple de la boucle automatique
@@ -19,14 +19,14 @@ const bool ALLOW_SIMPLE_TRANSLATION = true;
 
 // Définition des distances min et max mesurées par chaque capteur pour chaque cric (en mm)
 
-const int MIN_DISTANCE_1 = 109;
-const int MAX_DISTANCE_1 = 329;
-const int MIN_DISTANCE_2 = 121;
-const int MAX_DISTANCE_2 = 341;
-const int MIN_DISTANCE_3 = 128;
-const int MAX_DISTANCE_3 = 348;
-const int MIN_DISTANCE_4 = 108;
-const int MAX_DISTANCE_4 = 328;
+const int MIN_DISTANCE_1 = 125;
+const int MAX_DISTANCE_1 = 380;
+const int MIN_DISTANCE_2 = 130;
+const int MAX_DISTANCE_2 = 373;
+const int MIN_DISTANCE_3 = 135;
+const int MAX_DISTANCE_3 = 370;
+const int MIN_DISTANCE_4 = 125;
+const int MAX_DISTANCE_4 = 380;
 
 
 /*
@@ -43,10 +43,10 @@ const int MAX_DISTANCE_4 = 400;
 
 // Définition de la longueur max (en mm) de descente par rapport à la position milieu (pour les mouvements pré-programmés)
 // Cette longueur doit être inférieure à (MAX - MIN) / 2
-const int MIN_LOW_1 = 40;
-const int MIN_LOW_2 = 40;
-const int MIN_LOW_3 = 40;
-const int MIN_LOW_4 = 40;
+const int MIN_LOW_1 = 60;
+const int MIN_LOW_2 = 60;
+const int MIN_LOW_3 = 60;
+const int MIN_LOW_4 = 60;
 
 // Définition des pins XSHUT des 4 capteurs de distance
 const uint8_t XSHUT_1 = A0;

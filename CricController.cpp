@@ -14,6 +14,8 @@ void CricController::init(VL53L0XSensor& distanceSensor)
     m_relayAirOut.init();
     m_systemState = 0;
     m_distanceSensor = &distanceSensor;
+    m_distanceTimer = 0;
+    m_positionTimer = 0;
 }
 
 void CricController::stop()
@@ -27,16 +29,25 @@ void CricController::stop()
     }
 }
 
-void CricController::updatePosition(bool print)
+bool CricController::updatePosition(bool print)
 {
     if(m_distanceSensor->newDataAvailable())
     {
+        m_distanceTimer = millis();
         m_currentPosition = m_distanceSensor->getLastMeasuredDistance();
         if(print)
         {
             Serial.println(String(millis()) + "\t" + m_name + "\t" + String(m_currentPosition));
         }
     }
+
+    if(millis() - m_distanceTimer > 500)
+    {
+        Serial.println(m_name + "\tDistance error");
+        return true;
+    }
+
+    return false;
 }
 
 void CricController::setMinPosDistance(int minPosDistance)
@@ -71,16 +82,17 @@ bool CricController::relayMovementDetected()
     return tmp;
 }
 
-int8_t CricController::goToPosition(int desiredPosition)
+int8_t CricController::goToPosition(int desiredPosition, int tolerance)
 {
     if(desiredPosition > m_maxPosDistance || desiredPosition < m_minPosDistance)
     {
         Serial.println(String(millis()) + "\t" + m_name + "\tPosition order out of bound");
+        m_positionTimer = 0;
         return -1;
     }
     else
     {
-        if(abs(m_currentPosition - desiredPosition) < 3)
+        if(abs(m_currentPosition - desiredPosition) < tolerance || (m_positionTimer != 0 && millis() - m_positionTimer > 20000))
         {
             if(m_systemState != 0)
             {
@@ -90,11 +102,20 @@ int8_t CricController::goToPosition(int desiredPosition)
                 m_systemState = 0;
                 m_relayMovement = true;
             }
-            Serial.println(String(millis()) + "\t" + m_name + "\tPosition reached: " + String(desiredPosition));
+            if (m_positionTimer != 0 && millis() - m_positionTimer > 25000)
+                Serial.println(String(millis()) + "\t" + m_name + "\tPosition timeout");
+            else
+                Serial.println(String(millis()) + "\t" + m_name + "\tPosition reached: " + String(desiredPosition));
+            
+            m_positionTimer = 0;
+
             return 1;
         }
         else if(m_currentPosition < desiredPosition)
         {
+            if(m_positionTimer == 0)
+                m_positionTimer = millis();
+
             if(m_systemState != 1)
             {
                 m_relayAirIn.open();
@@ -105,6 +126,9 @@ int8_t CricController::goToPosition(int desiredPosition)
         }
         else if(m_currentPosition > desiredPosition)
         {
+            if(m_positionTimer == 0)
+                m_positionTimer = millis();
+
              if(m_systemState != 2)
             {
                 m_relayAirIn.close();
@@ -113,6 +137,7 @@ int8_t CricController::goToPosition(int desiredPosition)
                 m_systemState = 2;
             }
         }
+
         return 0;
     }
 }

@@ -1,3 +1,4 @@
+#include <avr/wdt.h>
 #include "VL53L0XSensor.h"
 #include "CricController.h"
 #include "system_parameters.h"
@@ -23,6 +24,8 @@ int desiredPosCric4 = 0;
 // Définition de booléens d'état permettant d'activer ou désactiver certaines options
 bool printPosition = false;
 bool continuousRandomMovement = true; // !!! Mettre à false si on ne veut pas un démarrage automatique
+
+int tolerance = 3;
 
 void setup() {
     Serial.begin(115200);
@@ -50,16 +53,21 @@ void setup() {
     Cric3.setMinPosDistance(MIN_DISTANCE_3);
     Cric4.setMaxPosDistance(MAX_DISTANCE_4);
     Cric4.setMinPosDistance(MIN_DISTANCE_4);
+
+    wdt_enable(WDTO_2S);
 }
 
 // !!! Le loop est asynchrone, ne pas mettre des fonction bloquantes !!!! 
 void loop() 
 {
+    // Reset watchdog
+    wdt_reset();
     // A laisser dans le loop pour actualiser la lecture des distances
-    Cric1.updatePosition(printPosition);
-    Cric2.updatePosition(printPosition);
-    Cric3.updatePosition(printPosition);
-    Cric4.updatePosition(printPosition);
+    bool distanceError = false;
+    distanceError |= Cric1.updatePosition(printPosition);
+    distanceError |= Cric2.updatePosition(printPosition);
+    distanceError |= Cric3.updatePosition(printPosition);
+    distanceError |= Cric4.updatePosition(printPosition);
 
     checkForSerialOrder();
 
@@ -77,7 +85,7 @@ void loop()
 
     bool relayMovement = Cric1.relayMovementDetected() | Cric2.relayMovementDetected() | Cric3.relayMovementDetected() | Cric4.relayMovementDetected();
     
-    if(relayMovement)
+    if(relayMovement || distanceError)
     {
         if(configureDistanceSensors() != 0)
         {
@@ -161,6 +169,7 @@ void runRandomMovements(bool reset)
         {
             Serial.println(String(millis()) + "\tBack to neutral");
             // on ramène le plateau à sa position "neutre"
+            tolerance = 40;
             upDown(0);
             maintainTime = 1;
         }
@@ -169,6 +178,7 @@ void runRandomMovements(bool reset)
         {
             // Le plateau a atteint sa position neutre
             maintainTime = 0;
+            tolerance = 3;
             lastMovement = millis();
             movementInterval = random(MIN_POS_INTERVAL, MAX_POS_INTERVAL + 1);
             Serial.println(String(millis()) + "\tPos_Int\t"  + String(movementInterval));
@@ -203,7 +213,7 @@ void checkForSerialOrder()
     if(Serial.available())
     {
         char b = Serial.read();
-
+        tolerance = 3;
         continuousRandomMovement = false;
 
         if(b == '1')
@@ -476,7 +486,7 @@ bool moveTable(bool reset)
 
     if(desiredPosCric1 != 0)
     {
-        if(Cric1.goToPosition(desiredPosCric1) == 1)
+        if(Cric1.goToPosition(desiredPosCric1, tolerance) == 1)
         {
             // Cric 1 a atteint sa position
             desiredPosCric1 = 0;
@@ -486,7 +496,7 @@ bool moveTable(bool reset)
 
     if(desiredPosCric2 != 0)
     {
-        if(Cric2.goToPosition(desiredPosCric2) == 1)
+        if(Cric2.goToPosition(desiredPosCric2, tolerance) == 1)
         {
             // Cric 1 a atteint sa position
             desiredPosCric2 = 0;
@@ -496,7 +506,7 @@ bool moveTable(bool reset)
 
     if(desiredPosCric3 != 0)
     {
-        if(Cric3.goToPosition(desiredPosCric3) == 1)
+        if(Cric3.goToPosition(desiredPosCric3, tolerance) == 1)
         {
             // Cric 1 a atteint sa position
             desiredPosCric3 = 0;
@@ -506,7 +516,7 @@ bool moveTable(bool reset)
 
     if(desiredPosCric4 != 0)
     {
-        if(Cric4.goToPosition(desiredPosCric4) == 1)
+        if(Cric4.goToPosition(desiredPosCric4, tolerance) == 1)
         {
             // Cric 1 a atteint sa position
             desiredPosCric4 = 0;
